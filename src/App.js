@@ -1,52 +1,43 @@
 import "./App.css";
-// import { useCallback } from "react";
 import { useState, useEffect } from "react";
-// import { Face } from "./Face";
-// import { range, svg } from "d3";
-import { csv, arc, pie, path } from "d3";
+import { csv, max, scaleBand, scaleLinear } from "d3";
 
-// const array = range(9 * 3);
-
-// export const App = () => array.map(() => <Face />);
+const csvUrl =
+  "https://gist.githubusercontent.com/curran/0ac4077c7fc6390f5dd33bf5c06cb5ff/raw/605c54080c7a93a417a3cea93fd52e7550e76500/UN_Population_2019.csv";
 
 const width = 960;
 const height = 500;
-const centerX = width / 2;
-const centerY = height / 2;
-
-const pieArc = arc().innerRadius(0).outerRadius(width);
-
-const csvUrl =
-  "https://gist.githubusercontent.com/curran/b236990081a24761f7000567094914e0/raw/cssNamedColors.csv";
 
 export const App = () => {
   const [data, setData] = useState(null);
+
+  const yScale = scaleBand()
+    .domain(data.map((d) => d.Country))
+    .range([0, height]);
+
+  const xScale = scaleLinear()
+    .domain([0, max(data, (d) => d.Population)])
+    .range([0, width.bandWidth()]);
+
   useEffect(() => {
-    csv(csvUrl).then(setData);
+    const row = (d) => {
+      d.Population = +d["2020"];
+      return d;
+    };
+    csv(csvUrl, row).then((data) => {
+      setData(data.slice(0, 10));
+    });
   }, []);
-  const colorPie = pie().value(1);
-  if (data) {
-    return (
-      <svg width={width} height={height}>
-        <g transform={`translate(${centerX},${centerY})`}>
-          {
-            colorPie(data).map((d) => (
-              <path fill={d.data["RGB hex value"]} d={pieArc(d)} />
-            ))
-            // data.map((d, i) => (
-            //   <path
-            //     fill={d["RGB hex value"]}
-            //     d={pieArc({
-            //       startAngle: (i / data.length) * 2 * Math.PI,
-            //       endAngle: ((i + 1) / data.length) * 2 * Math.PI,
-            //     })}
-            //   />
-            // ))
-          }
-        </g>
-      </svg>
-    );
-  } else {
+
+  if (!data) {
     return <pre>"Loading..."</pre>;
   }
+  console.log(data[0]);
+  return (
+    <svg width={width} height={height}>
+      {data.map((d) => (
+        <rect x={0} y={yScale(d.country)} width={xScale(d.Population)} height={yScale.bandwidth()} />
+      ))}
+    </svg>
+  );
 };
